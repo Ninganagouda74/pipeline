@@ -1,0 +1,34 @@
+#!groovy
+pipeline{
+    environment{
+        registry = "ninganagouda/hub2"
+        registryCredentials = "dockerid"
+    }
+    agent any
+    stages{
+        stage('clone a reposirty'){
+            steps{
+                git credentialsId: 'gitid', url: 'https://github.com/Ninganagouda74/rps-ant.git'
+            }
+        }
+        stage('build a docker image'){
+            steps{
+                sh 'echo build a docker image'
+                script{
+                    image = docker.build("${registry}:$BUILD_NUMBER")
+                }
+            }
+        }
+        stage('push docker image to registry'){
+            steps{
+                sh 'echo push image to registry'
+                script{
+                    docker.withRegistry('', registryCredentials){
+                        image.push()
+                        image.push('latest')
+                    }
+                }
+            }
+        }
+    }
+}
