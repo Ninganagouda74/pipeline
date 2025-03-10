@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'my-app'                  // Your Docker image name
-        IMAGE_TAG = 'latest'                  // Tag for the image
+        IMAGE_NAME = 'my-dockerhub-username/my-app'   // Docker Hub repo name
+        IMAGE_TAG = 'latest'                         // Image tag
+        CONTAINER_NAME = 'my-app-container'          // Container name
     }
 
     stages {
@@ -25,9 +26,43 @@ pipeline {
             }
         }
 
-        stage('List Docker Images') {
+        stage('Login to Docker Hub') {
             steps {
-                sh 'docker images'
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh """
+                        echo \$DOCKER_PASSWORD | docker login -u \$DOCKER_USERNAME --password-stdin
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    sh """
+                    docker push $IMAGE_NAME:$IMAGE_TAG
+                    """
+                }
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    sh """
+                    docker stop $CONTAINER_NAME || true
+                    docker rm $CONTAINER_NAME || true
+                    docker run -d --name $CONTAINER_NAME -p 8080:80 $IMAGE_NAME:$IMAGE_TAG
+                    """
+                }
+            }
+        }
+
+        stage('Verify Container') {
+            steps {
+                sh 'docker ps'
             }
         }
     }
