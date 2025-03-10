@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = 'my-app'                  // Your Docker image name
+        IMAGE_TAG = 'latest'                  // Tag for the image
+    }
+
+    stages {
+        stage('Clone Git Repository') {
+            steps {
+                git branch: 'main',                 
+                    credentialsId: 'your-cred-id', 
+                    url: 'git@github.com:user/repo.git' 
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh """
+                    docker build -t $IMAGE_NAME:$IMAGE_TAG .
+                    """
+                }
+            }
+        }
+
+        stage('List Docker Images') {
+            steps {
+                sh 'docker images'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline completed!'
+        }
+    }
+}
